@@ -27,7 +27,6 @@ package com.groupon.jenkins.buildtype.dockercompose;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.groupon.jenkins.buildtype.util.shell.ShellCommands;
-import hudson.matrix.AxisList;
 import hudson.matrix.Combination;
 import org.junit.Assert;
 import static  com.google.common.collect.ImmutableMap.of;
@@ -36,6 +35,7 @@ import org.junit.Test;
 import java.util.*;
 
 public class BuildConfigurationTest {
+
   @Test
   public  void should_parallelize_on_run(){
     BuildConfiguration buildConfiguration = new BuildConfiguration("groupon/DotCi", ImmutableMap.of("run", of("unit","command","integration","integration")),  8);
@@ -44,17 +44,18 @@ public class BuildConfigurationTest {
     Assert.assertEquals("script=unit", Iterables.get(axisList,0).toString());
     Assert.assertEquals("script=integration", Iterables.get(axisList,1).toString());
   }
+
   @Test
   public  void should_cleanup_after_test_run(){
     ShellCommands commands = getRunCommands();
     Assert.assertEquals("trap \"docker-compose -f docker-compose.yml -p unitgroupondotci8 kill; docker-compose -f docker-compose.yml -p unitgroupondotci8 rm -v --force; exit\" PIPE QUIT INT HUP EXIT TERM",commands.get(6));
   }
+
   @Test
   public  void should_pull_latest_image_from_registry(){
     ShellCommands commands = getRunCommands();
     Assert.assertEquals("docker-compose -f docker-compose.yml -p unitgroupondotci8 pull",commands.get(7));
   }
-
 
   @Test
   public  void should_run_cmd_from_ci_yml(){
@@ -64,29 +65,33 @@ public class BuildConfigurationTest {
 
   @Test
   public void should_run_before_command_if_present(){
-    ShellCommands commands = getRunCommandsWithBefore();
+    ShellCommands commands = getRunCommands(ImmutableMap.of("before", "before cmd", "run", of("unit", "command", "integration", "integration")));
     Assert.assertEquals("sh -xc 'before cmd'", commands.get(6));
     Assert.assertEquals("trap \"docker-compose -f docker-compose.yml -p unitgroupondotci8 kill; docker-compose -f docker-compose.yml -p unitgroupondotci8 rm -v --force; exit\" PIPE QUIT INT HUP EXIT TERM",commands.get(7));
   }
 
   @Test
+  public void should_run_before_run_command_if_present(){
+    BuildConfiguration buildConfiguration = new BuildConfiguration("groupon/DotCi", ImmutableMap.of("before_run", "before_run cmd", "run", of("unit", "command", "integration", "integration")),  8);
+    ShellCommands preRunCommands = buildConfiguration.getBeforeRunCommands(getEnvVars());
+    Assert.assertEquals("sh -xc 'before_run cmd'", preRunCommands.get(6));
+  }
+
+  @Test
   public void should_accept_alternative_docker_compose_file(){
-    Map ci_config = ImmutableMap.of("docker-compose-file", "./jenkins/docker-compose.yml", "run",  of("unit", "command"));
-    BuildConfiguration buildConfiguration = new BuildConfiguration("groupon/DotCi", ci_config,  8);
-    ShellCommands commands = buildConfiguration.getCommands(Combination.fromString("script=unit"), getEnvVars());
+    ShellCommands commands = getRunCommands(ImmutableMap.of("docker-compose-file", "./jenkins/docker-compose.yml", "run",  of("unit", "command")));
     Assert.assertEquals("trap \"docker-compose -f ./jenkins/docker-compose.yml -p unitgroupondotci8 kill; docker-compose -f ./jenkins/docker-compose.yml -p unitgroupondotci8 rm -v --force; exit\" PIPE QUIT INT HUP EXIT TERM",commands.get(6));
     Assert.assertEquals("docker-compose -f ./jenkins/docker-compose.yml -p unitgroupondotci8 pull",commands.get(7));
     Assert.assertEquals("docker-compose -f ./jenkins/docker-compose.yml -p unitgroupondotci8 run -T unit command",commands.get(8));
   }
 
-  private ShellCommands getRunCommands() {
-    BuildConfiguration buildConfiguration = new BuildConfiguration("groupon/DotCi", ImmutableMap.of("run", of("unit", "command", "integration", "integration")),  8);
+  private ShellCommands getRunCommands(Map ciConfig) {
+    BuildConfiguration buildConfiguration = new BuildConfiguration("groupon/DotCi", ciConfig, 8);
     return buildConfiguration.getCommands(Combination.fromString("script=unit"), getEnvVars());
   }
 
-  private ShellCommands getRunCommandsWithBefore() {
-    Map ci_config = ImmutableMap.of("before", "before cmd", "run", of("unit", "command", "integration", "integration"));
-    BuildConfiguration buildConfiguration = new BuildConfiguration("groupon/DotCi", ci_config,  8);
+  private ShellCommands getRunCommands() {
+    BuildConfiguration buildConfiguration = new BuildConfiguration("groupon/DotCi", ImmutableMap.of("run", of("unit", "command", "integration", "integration")),  8);
     return buildConfiguration.getCommands(Combination.fromString("script=unit"), getEnvVars());
   }
 
