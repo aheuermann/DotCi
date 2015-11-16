@@ -9,13 +9,34 @@ docker-compose-file: "./jenkins/docker-compose.yml"
 ```
 Specify an alternate compose file (default: docker-compose.yml)
 
-### `before`
-
+### `before_run`
 
 ```yaml
-before: "./some_script && ./another_script"
+before_run: "./some_script && ./another_script"
 ```
-Specify any commands that should be run before building the image.
+Specify commands that should be run before the run commands. These commands will execute once. 
+
+### `after_run`
+
+```yaml
+after_run: "./some_script && ./another_script"
+```
+Specify commands that should be run after the run commands. These commands will execute once.
+
+
+### `before_each`
+
+```yaml
+before_each: "./some_script && ./another_script"
+```
+Specify commands that should be run before each run sub-command. 
+
+### `after_each`
+
+```yaml
+after_each: "./some_script && ./another_script"
+```
+Specify commands that should be run after each run sub-command.
 
 ### `run`
 
