@@ -30,6 +30,7 @@ import com.groupon.jenkins.buildtype.util.shell.ShellCommands;
 import hudson.matrix.Combination;
 import org.junit.Assert;
 import static  com.google.common.collect.ImmutableMap.of;
+
 import org.junit.Test;
 
 import java.util.*;
@@ -79,15 +80,27 @@ public class BuildConfigurationTest {
   @Test
   public void should_run_before_run_command_if_present(){
     BuildConfiguration buildConfiguration = new BuildConfiguration("groupon/DotCi", ImmutableMap.of("before_run", "before_run cmd", "run", of("unit", "command", "integration", "integration")),  8);
-    ShellCommands preRunCommands = buildConfiguration.getBeforeRunCommands(getEnvVars());
-    Assert.assertEquals("sh -xc 'before_run cmd'", preRunCommands.get(6));
+    ShellCommands beforeCommands = buildConfiguration.getBeforeCommands(getEnvVars());
+    Assert.assertEquals("sh -xc 'before_run cmd'", beforeCommands.get(6));
   }
 
   @Test
   public void should_run_after_run_command_if_present(){
     BuildConfiguration buildConfiguration = new BuildConfiguration("groupon/DotCi", ImmutableMap.of("run", of("unit", "command", "integration", "integration"), "after_run", "after_run cmd"),  8);
-    ShellCommands postRunCommands = buildConfiguration.getAfterRunCommands();
-    Assert.assertEquals("sh -xc 'after_run cmd'", postRunCommands.get(0));
+    ShellCommands afterCommands = buildConfiguration.getAfterCommands();
+    Assert.assertEquals("sh -xc 'after_run cmd'", afterCommands.get(0));
+  }
+
+  @Test
+  public void should_run_checkout_commands_in_master_build(){
+    BuildConfiguration buildConfiguration = new BuildConfiguration("groupon/DotCi", ImmutableMap.of("before_run", "before_run cmd", "run", of("unit", "command"), "after_run", "after_run cmd"),  8);
+    ShellCommands commands = buildConfiguration.getBeforeCommands(getEnvVars());
+
+    Assert.assertEquals("chmod -R u+w . ; find . ! -path \"./deploykey_rsa.pub\" ! -path \"./deploykey_rsa\" -delete", commands.get(0));
+    Assert.assertEquals("git init", commands.get(1));
+    Assert.assertEquals("git remote add origin git@github.com:groupon/DotCi.git", commands.get(2));
+    Assert.assertEquals("git fetch origin master", commands.get(3));
+    Assert.assertEquals("git reset --hard  abc123", commands.get(4));
   }
 
   @Test
@@ -100,15 +113,15 @@ public class BuildConfigurationTest {
 
   private ShellCommands getRunCommands(Map ciConfig) {
     BuildConfiguration buildConfiguration = new BuildConfiguration("groupon/DotCi", ciConfig, 8);
-    return buildConfiguration.getCommands(Combination.fromString("script=unit"), getEnvVars());
+    return buildConfiguration.getCommandsWithCheckout("unit", getEnvVars());
   }
 
   private ShellCommands getRunCommands() {
     BuildConfiguration buildConfiguration = new BuildConfiguration("groupon/DotCi", ImmutableMap.of("run", of("unit", "command", "integration", "integration")),  8);
-    return buildConfiguration.getCommands(Combination.fromString("script=unit"), getEnvVars());
+    return buildConfiguration.getCommandsWithCheckout("unit", getEnvVars());
   }
 
   private Map<String, Object> getEnvVars() {
-    return ImmutableMap.<String,Object>of("DOTCI_DOCKER_COMPOSE_GIT_CLONE_URL","git@github.com:groupon/DotCi.git");
+    return ImmutableMap.<String,Object>of("DOTCI_DOCKER_COMPOSE_GIT_CLONE_URL","git@github.com:groupon/DotCi.git", "DOTCI_BRANCH", "master", "SHA", "abc123");
   }
 }

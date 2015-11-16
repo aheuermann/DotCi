@@ -24,7 +24,6 @@
 
 package com.groupon.jenkins.buildtype.dockercompose;
 
-import com.google.common.collect.ImmutableMap;
 import com.groupon.jenkins.buildtype.InvalidBuildConfigurationException;
 import com.groupon.jenkins.buildtype.plugins.DotCiPluginAdapter;
 import com.groupon.jenkins.buildtype.util.shell.ShellCommands;
@@ -64,45 +63,43 @@ public class DockerComposeBuild extends BuildType implements SubBuildRunner {
         this.buildConfiguration = new BuildConfiguration(build.getParent().getFullName(),config,build.getNumber());
         build.setAxisList(buildConfiguration.getAxisList());
 
-        Result beforeRunResult = runBeforeRunCommands(buildExecutionContext, listener);
+        Result beforeRunResult = runBeforeCommands(buildExecutionContext, listener);
 
         Result result;
         if(buildConfiguration.isParallelized()){
             result = runMultiConfigbuildRunner(build, buildConfiguration, listener, launcher);
         }else{
-            result = runSubBuild(new Combination(ImmutableMap.of("script", buildConfiguration.getOnlyRun())), buildExecutionContext, listener);
+            result = runCommands(buildConfiguration.getCommands(buildConfiguration.getOnlyRun()), buildExecutionContext, listener);
         }
 
-        Result afterRunResult = runAfterRunCommands(buildExecutionContext, listener);
+        Result afterResult = runAfterCommands(build, buildExecutionContext, launcher, listener);
 
-        Result pluginResult = runPlugins(build, buildConfiguration.getPlugins(), listener, launcher);
-        Result notifierResult = runNotifiers(build, buildConfiguration.getNotifiers(), listener);
-
-        return result.combine(beforeRunResult)
-                .combine(afterRunResult)
-                .combine(pluginResult)
-                .combine(notifierResult);
+        return beforeRunResult.combine(result).combine(afterResult);
     }
 
-    private Result runBeforeRunCommands(final BuildExecutionContext buildExecutionContext, final BuildListener listener) throws IOException, InterruptedException {
-        ShellCommands beforeCommands = buildConfiguration.getBeforeRunCommands(buildExecutionContext.getBuildEnvironmentVariables());
+    private Result runBeforeCommands(final BuildExecutionContext buildExecutionContext, final BuildListener listener) throws IOException, InterruptedException {
+        ShellCommands beforeCommands = buildConfiguration.getBeforeCommands(buildExecutionContext.getBuildEnvironmentVariables());
         if (beforeCommands != null) {
             return runCommands(beforeCommands, buildExecutionContext, listener);
         }
         return Result.SUCCESS;
     }
 
-    private Result runAfterRunCommands(final BuildExecutionContext buildExecutionContext, final BuildListener listener) throws IOException, InterruptedException {
-        ShellCommands postRunCommands = buildConfiguration.getAfterRunCommands();
+    private Result runAfterCommands(final DynamicBuild build, final BuildExecutionContext buildExecutionContext,Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
+        ShellCommands postRunCommands = buildConfiguration.getAfterCommands();
+        Result afterResult = Result.SUCCESS;
         if (postRunCommands != null) {
-            return runCommands(postRunCommands, buildExecutionContext, listener);
+            afterResult = runCommands(postRunCommands, buildExecutionContext, listener);
         }
-        return Result.SUCCESS;
+        Result pluginResult = runPlugins(build, buildConfiguration.getPlugins(), listener, launcher);
+        Result notifierResult = runNotifiers(build, buildConfiguration.getNotifiers(), listener);
+
+        return afterResult.combine(pluginResult).combine(notifierResult);
     }
 
     @Override
     public Result runSubBuild(Combination combination, BuildExecutionContext buildExecutionContext, BuildListener listener) throws IOException, InterruptedException {
-        ShellCommands commands = buildConfiguration.getCommands(combination, buildExecutionContext.getBuildEnvironmentVariables());
+        ShellCommands commands = buildConfiguration.getCommandsWithCheckout(combination.get("script"), buildExecutionContext.getBuildEnvironmentVariables());
         return runCommands(commands, buildExecutionContext, listener);
     }
 

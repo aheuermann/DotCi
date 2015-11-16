@@ -33,7 +33,6 @@ import com.groupon.jenkins.git.*;
 import com.groupon.jenkins.notifications.PostBuildNotifier;
 import hudson.matrix.Axis;
 import hudson.matrix.AxisList;
-import hudson.matrix.Combination;
 
 import java.util.*;
 
@@ -55,17 +54,16 @@ public class BuildConfiguration {
         this.config = config;
     }
 
-    public ShellCommands getBeforeRunCommands(Map<String, Object> dotCiEnvVars) {
-        if (!config.containsKey("before_run")) {
-            return null;
-        }
+    public ShellCommands getBeforeCommands(Map<String, Object> dotCiEnvVars) {
         ShellCommands shellCommands = new ShellCommands();
         shellCommands.add(getCheckoutCommands(dotCiEnvVars));
-        shellCommands.add(String.format("sh -xc '%s'", SHELL_ESCAPE.escape((String) config.get("before_run"))));
+        if (config.containsKey("before_run")) {
+            shellCommands.add(String.format("sh -xc '%s'", SHELL_ESCAPE.escape((String) config.get("before_run"))));
+        }
         return shellCommands;
     }
 
-    public ShellCommands getAfterRunCommands() {
+    public ShellCommands getAfterCommands( ) {
         if (!config.containsKey("after_run")) {
             return null;
         }
@@ -74,12 +72,19 @@ public class BuildConfiguration {
         return shellCommands;
     }
 
-    public ShellCommands getCommands(Combination combination, Map<String, Object> dotCiEnvVars) {
-        String dockerComposeContainerName = combination.get("script");
-        String projectName = dockerComposeContainerName + this.dockerComposeProjectName;
-        String fileName = getDockerComposeFileName();
+    public ShellCommands getCommandsWithCheckout(String dockerComposeContainerName, Map<String, Object> dotCiEnvVars) {
         ShellCommands shellCommands = new ShellCommands();
         shellCommands.add(getCheckoutCommands(dotCiEnvVars));
+        shellCommands.add(getCommands(dockerComposeContainerName));
+        return shellCommands;
+    }
+
+    public ShellCommands getCommands(String dockerComposeContainerName) {
+        String projectName = dockerComposeContainerName + this.dockerComposeProjectName;
+        String dockerComposeCommand = getDockerComposeRunCommand(dockerComposeContainerName);
+        String fileName = getDockerComposeFileName();
+
+        ShellCommands shellCommands = new ShellCommands();
 
         if (config.containsKey("before_each") || config.containsKey("before")) {
             String beforeScript = (String) (config.containsKey("before_each") ? config.get("before_each") : config.get("before"));
@@ -88,16 +93,14 @@ public class BuildConfiguration {
 
         shellCommands.add(String.format("trap \"docker-compose -f %s -p %s kill; docker-compose -f %s -p %s rm -v --force; exit\" PIPE QUIT INT HUP EXIT TERM",fileName,projectName,fileName,projectName));
         shellCommands.add(String.format("docker-compose -f %s -p %s pull",fileName,projectName));
-        if (config.get("run") != null) {
-            Map runConfig = (Map) config.get("run");
-            Object dockerComposeCommand = runConfig.get(dockerComposeContainerName);
-            if (dockerComposeCommand != null ) {
-                shellCommands.add(String.format("docker-compose -f %s -p %s run -T %s %s", fileName, projectName, dockerComposeContainerName,SHELL_ESCAPE.escape((String) dockerComposeCommand)));
-            }
-            else {
-                shellCommands.add(String.format("docker-compose -f %s -p %s run -T %s",fileName,projectName,dockerComposeContainerName));
-            }
+
+        if (dockerComposeCommand != null ) {
+            shellCommands.add(String.format("docker-compose -f %s -p %s run -T %s %s", fileName, projectName, dockerComposeContainerName,SHELL_ESCAPE.escape((String) dockerComposeCommand)));
         }
+        else {
+            shellCommands.add(String.format("docker-compose -f %s -p %s run -T %s",fileName,projectName,dockerComposeContainerName));
+        }
+
         extractWorkingDirIntoWorkSpace(dockerComposeContainerName, projectName, shellCommands);
 
         if (config.containsKey("after_each")) {
@@ -105,6 +108,11 @@ public class BuildConfiguration {
         }
 
         return shellCommands;
+    }
+
+    private String getDockerComposeRunCommand(String containerName) {
+        Map runConfig = (Map) config.get("run");
+        return (String) runConfig.get(containerName);
     }
 
     private void extractWorkingDirIntoWorkSpace(String dockerComposeContainerName, String projectName, ShellCommands shellCommands) {
@@ -155,6 +163,7 @@ public class BuildConfiguration {
     public String getDockerComposeFileName() {
         return config.get("docker-compose-file") !=null ? (String) config.get("docker-compose-file") : "docker-compose.yml";
     }
+
     private ShellCommands getCheckoutCommands(Map<String, Object> dotCiEnvVars) {
         String gitCloneUrl = (String) dotCiEnvVars.get("DOTCI_DOCKER_COMPOSE_GIT_CLONE_URL");
         GitUrl gitRepoUrl = new GitUrl(gitCloneUrl);
