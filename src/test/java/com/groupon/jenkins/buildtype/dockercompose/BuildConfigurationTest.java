@@ -71,10 +71,23 @@ public class BuildConfigurationTest {
   }
 
   @Test
+  public void should_run_after_each_command_if_present(){
+    ShellCommands commands = getRunCommands(ImmutableMap.of("run", of("unit", "command", "integration", "integration"), "after_each", "after_each cmd"));
+    Assert.assertEquals("sh -xc 'after_each cmd'", commands.get(9));
+  }
+
+  @Test
   public void should_run_before_run_command_if_present(){
     BuildConfiguration buildConfiguration = new BuildConfiguration("groupon/DotCi", ImmutableMap.of("before_run", "before_run cmd", "run", of("unit", "command", "integration", "integration")),  8);
     ShellCommands preRunCommands = buildConfiguration.getBeforeRunCommands(getEnvVars());
     Assert.assertEquals("sh -xc 'before_run cmd'", preRunCommands.get(6));
+  }
+
+  @Test
+  public void should_run_after_run_command_if_present(){
+    BuildConfiguration buildConfiguration = new BuildConfiguration("groupon/DotCi", ImmutableMap.of("run", of("unit", "command", "integration", "integration"), "after_run", "after_run cmd"),  8);
+    ShellCommands postRunCommands = buildConfiguration.getAfterRunCommands();
+    Assert.assertEquals("sh -xc 'after_run cmd'", postRunCommands.get(0));
   }
 
   @Test

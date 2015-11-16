@@ -73,10 +73,13 @@ public class DockerComposeBuild extends BuildType implements SubBuildRunner {
             result = runSubBuild(new Combination(ImmutableMap.of("script", buildConfiguration.getOnlyRun())), buildExecutionContext, listener);
         }
 
+        Result afterRunResult = runAfterRunCommands(buildExecutionContext, listener);
+
         Result pluginResult = runPlugins(build, buildConfiguration.getPlugins(), listener, launcher);
         Result notifierResult = runNotifiers(build, buildConfiguration.getNotifiers(), listener);
 
         return result.combine(beforeRunResult)
+                .combine(afterRunResult)
                 .combine(pluginResult)
                 .combine(notifierResult);
     }
@@ -85,6 +88,14 @@ public class DockerComposeBuild extends BuildType implements SubBuildRunner {
         ShellCommands beforeCommands = buildConfiguration.getBeforeRunCommands(buildExecutionContext.getBuildEnvironmentVariables());
         if (beforeCommands != null) {
             return runCommands(beforeCommands, buildExecutionContext, listener);
+        }
+        return Result.SUCCESS;
+    }
+
+    private Result runAfterRunCommands(final BuildExecutionContext buildExecutionContext, final BuildListener listener) throws IOException, InterruptedException {
+        ShellCommands postRunCommands = buildConfiguration.getAfterRunCommands();
+        if (postRunCommands != null) {
+            return runCommands(postRunCommands, buildExecutionContext, listener);
         }
         return Result.SUCCESS;
     }

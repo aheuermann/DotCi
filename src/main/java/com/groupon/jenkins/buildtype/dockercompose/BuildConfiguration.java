@@ -65,6 +65,15 @@ public class BuildConfiguration {
         return shellCommands;
     }
 
+    public ShellCommands getAfterRunCommands() {
+        if (!config.containsKey("after_run")) {
+            return null;
+        }
+        ShellCommands shellCommands = new ShellCommands();
+        shellCommands.add(String.format("sh -xc '%s'", SHELL_ESCAPE.escape((String) config.get("after_run"))));
+        return shellCommands;
+    }
+
     public ShellCommands getCommands(Combination combination, Map<String, Object> dotCiEnvVars) {
         String dockerComposeContainerName = combination.get("script");
         String projectName = dockerComposeContainerName + this.dockerComposeProjectName;
@@ -90,6 +99,10 @@ public class BuildConfiguration {
             }
         }
         extractWorkingDirIntoWorkSpace(dockerComposeContainerName, projectName, shellCommands);
+
+        if (config.containsKey("after_each")) {
+            shellCommands.add(String.format("sh -xc '%s'", SHELL_ESCAPE.escape((String) config.get("after_each"))));
+        }
 
         return shellCommands;
     }
