@@ -45,7 +45,6 @@ import hudson.model.BuildListener;
 import hudson.model.Result;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -111,7 +110,6 @@ public class DockerComposeBuild extends BuildType implements SubBuildRunner {
     }
 
     private Result runParallelBuild(final DynamicBuild dynamicBuild, final  BuildExecutionContext buildExecutionContext, final BuildConfiguration buildConfiguration, final BuildListener listener) throws IOException, InterruptedException {
-
         SubBuildScheduler subBuildScheduler = new SubBuildScheduler(dynamicBuild, this, new SubBuildScheduler.SubBuildFinishListener() {
             @Override
             public void runFinished(DynamicSubBuild subBuild) throws IOException {
@@ -121,10 +119,15 @@ public class DockerComposeBuild extends BuildType implements SubBuildRunner {
             }
         });
 
+
         try {
             Result beforeRunResult = runBeforeCommands(buildExecutionContext, listener);
+
             Iterable<Combination> axisList = buildConfiguration.getAxisList().list();
-            Result runResult = beforeRunResult.combine(subBuildScheduler.runSubBuilds(axisList, listener));
+            String subBuild =  buildConfiguration.getSubBuildLabel();
+            Result subBuildResult = subBuildScheduler.runSubBuilds(axisList, listener, subBuild);
+
+            Result runResult = beforeRunResult.combine(subBuildResult);
             if(runResult.equals(Result.SUCCESS)){
                 Result afterRunResult = runAfterCommands(buildExecutionContext,listener);
                 runResult = runResult.combine(afterRunResult);

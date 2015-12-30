@@ -123,6 +123,10 @@ public class BuildConfiguration {
         return (String) runConfig.keySet().iterator().next();
     }
 
+    public String getSubBuildLabel() {
+        return (String) config.get("sub_build_label");
+    }
+
     public boolean isParallelized() {
         return ((Map) config.get("run")).size() > 1 ;
     }
