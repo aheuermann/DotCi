@@ -212,13 +212,14 @@ public abstract class DbBackedBuild<P extends DbBackedProject<P, B>, B extends D
             return null;
         }
         for (Computer computer : jenkins.getComputers()) {
-            for (Executor executor : computer.getExecutors()) {
+            List<Executor> executors = computer.getExecutors();
+            for (Executor executor : executors) {
                 if (isCurrent(executor)) {
                     return executor;
                 }
             }
         }
-        return null;
+        return getOneOffExecutor();
     }
 
     private boolean isCurrent(Executor executor) {

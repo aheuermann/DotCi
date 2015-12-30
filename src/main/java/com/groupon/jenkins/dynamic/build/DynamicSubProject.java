@@ -23,9 +23,7 @@ THE SOFTWARE.
  */
 package com.groupon.jenkins.dynamic.build;
 
-import com.groupon.jenkins.dynamic.build.repository.DynamicProjectRepository;
 import hudson.matrix.Combination;
-import hudson.model.AbstractBuild;
 import hudson.model.AbstractItem;
 import hudson.model.Action;
 import hudson.model.Cause;
@@ -38,6 +36,7 @@ import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.Label;
 import hudson.model.ParametersAction;
+import hudson.model.Queue;
 import hudson.model.Queue.NonBlockingTask;
 import hudson.model.Queue.QueueAction;
 import hudson.model.SCMedItem;
@@ -56,18 +55,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jenkins.model.Jenkins;
 import jenkins.scm.SCMCheckoutStrategy;
 
 import org.bson.types.ObjectId;
-import org.mongodb.morphia.annotations.PostLoad;
 import org.mongodb.morphia.annotations.PrePersist;
 import org.springframework.util.ReflectionUtils;
 
-public class DynamicSubProject extends DbBackedProject<DynamicSubProject, DynamicSubBuild> implements SCMedItem, NonBlockingTask {
+public class DynamicSubProject extends DbBackedProject<DynamicSubProject, DynamicSubBuild> implements SCMedItem, NonBlockingTask, Queue.FlyweightTask {
     private ObjectId parentId;
 
     @PrePersist

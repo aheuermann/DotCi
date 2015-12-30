@@ -256,14 +256,6 @@ public class DynamicBuild extends DbBackedBuild<DynamicProject, DynamicBuild> {
         }
     }
 
-
-    @Override
-    @Exported
-    public Executor getExecutor() {
-        final Executor executor = super.getExecutor();
-        return executor == null ? getOneOffExecutor() : executor;
-    }
-
     private DynamicProject getConductor() {
         return this.getParent();
     }
