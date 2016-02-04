@@ -52,15 +52,9 @@ public class BuildConfigurationTest {
   }
 
   @Test
-  public  void should_pull_latest_image_from_registry(){
-    ShellCommands commands = getRunCommands();
-    Assert.assertEquals("docker-compose -f docker-compose.yml pull",commands.get(6));
-  }
-
-  @Test
   public  void should_run_cmd_from_ci_yml(){
     ShellCommands commands = getRunCommands();
-    Assert.assertEquals("docker-compose -f docker-compose.yml run -T unit command",commands.get(7));
+    Assert.assertEquals("docker-compose -f docker-compose.yml run -T unit command",commands.get(6));
   }
 
   @Test
@@ -108,8 +102,7 @@ public class BuildConfigurationTest {
   public void should_accept_alternative_docker_compose_file(){
     ShellCommands commands = getRunCommands(ImmutableMap.of("docker-compose-file", "./jenkins/docker-compose.yml", "run",  of("unit", "command")));
     Assert.assertEquals("trap \"docker-compose -f ./jenkins/docker-compose.yml kill; docker-compose -f ./jenkins/docker-compose.yml rm -v --force; exit\" PIPE QUIT INT HUP EXIT TERM",commands.get(5));
-    Assert.assertEquals("docker-compose -f ./jenkins/docker-compose.yml pull",commands.get(6));
-    Assert.assertEquals("docker-compose -f ./jenkins/docker-compose.yml run -T unit command",commands.get(7));
+    Assert.assertEquals("docker-compose -f ./jenkins/docker-compose.yml run -T unit command",commands.get(6));
   }
   @Test
   public void should_be_skipped_if_skip_specified(){
