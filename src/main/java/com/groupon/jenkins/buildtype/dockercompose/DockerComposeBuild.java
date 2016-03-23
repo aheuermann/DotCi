@@ -68,7 +68,9 @@ public class DockerComposeBuild extends BuildType implements SubBuildRunner {
         Map config = new GroovyYamlTemplateProcessor(getDotCiYml(build), buildEnvironment).getConfig();
         this.buildConfiguration = new BuildConfiguration(config);
         if(buildConfiguration.isSkipped()){
+            Thread.sleep(5000);
             build.skip();
+            Thread.sleep(5000);
             return Result.SUCCESS;
         }
         result = runBeforeCommands(buildExecutionContext, listener);
