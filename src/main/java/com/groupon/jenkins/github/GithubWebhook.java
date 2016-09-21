@@ -83,11 +83,14 @@ public class GithubWebhook implements UnprotectedRootAction {
 
             if (payload.needsBuild(job)) {
                 LOGGER.info("starting job " + job.getName());
-                this.queue.execute(() -> {
-                    try {
-                        job.scheduleBuild(0, payload.getCause(), new NoDuplicatesParameterAction(getParametersValues(job, payload.getBranch())));
-                    } catch (final Exception e) {
-                        LOGGER.log(Level.INFO, "Error scheduling build for " + payload.getProjectUrl(), e);
+                this.queue.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            job.scheduleBuild(0, payload.getCause(), new NoDuplicatesParameterAction(getParametersValues(job, payload.getBranch())));
+                        } catch (final Exception e) {
+                            LOGGER.log(Level.INFO, "Error scheduling build for " + payload.getProjectUrl(), e);
+                        }
                     }
                 });
             }

@@ -122,6 +122,6 @@ public class ManualBuildCause extends BuildCause {
     @Override
     public Iterable<GithubLogEntry> getChangeLogEntries() {
         //null check here for backward compat with builds that were built without this field.
-        return changeLogEntries == null? new ArrayList<>():changeLogEntries;
+        return changeLogEntries == null? new ArrayList<GithubLogEntry>():changeLogEntries;
     }
 }

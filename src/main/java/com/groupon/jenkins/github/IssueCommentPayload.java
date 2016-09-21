@@ -20,7 +20,7 @@ import java.io.StringReader;
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.ANY;
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 
-public class IssueCommentPayload implements WebhookPayload {
+public class IssueCommentPayload extends WebhookPayload {
 
     static final ObjectMapper MAPPER = new ObjectMapper();
 

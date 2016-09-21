@@ -4,7 +4,7 @@ import com.groupon.jenkins.dynamic.build.DynamicProject;
 import com.groupon.jenkins.dynamic.build.cause.BuildCause;
 import org.kohsuke.github.GHEvent;
 
-public interface WebhookPayload {
+public abstract class WebhookPayload {
 
 
     static WebhookPayload get(final String eventType, final String payloadData) {
@@ -20,11 +20,11 @@ public interface WebhookPayload {
         }
     }
 
-    String getProjectUrl();
+    abstract String getProjectUrl();
 
-    boolean needsBuild(DynamicProject project);
+    abstract boolean needsBuild(DynamicProject project);
 
-    BuildCause getCause();
+    abstract BuildCause getCause();
 
-    String getBranch();
+    abstract String getBranch();
 }

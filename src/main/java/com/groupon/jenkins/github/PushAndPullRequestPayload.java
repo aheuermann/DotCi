@@ -35,7 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class PushAndPullRequestPayload implements WebhookPayload {
+public class PushAndPullRequestPayload extends WebhookPayload {
 
 
     private final JSONObject payloadJson;

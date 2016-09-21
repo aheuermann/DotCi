@@ -27,6 +27,7 @@ import hudson.model.User;
 import hudson.scm.ChangeLogSet;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 
 import java.util.List;
@@ -54,8 +55,11 @@ public class GithubLogEntry extends ChangeLogSet.Entry {
         this.message = commit.getCommitShortInfo().getMessage();
         this.githubUrl = commit.getHtmlUrl().toExternalForm();
         this.commitId = commit.getSHA1();
-        this.affectedPaths = commit.getFiles().stream().map(file -> file.getFileName()).collect(Collectors.toList());
-
+        List<GHCommit.File> files = commit.getFiles();
+        this.affectedPaths = new ArrayList<>();
+        for (GHCommit.File file : files) {
+            this.affectedPaths.add(file.getFileName());
+        }
     }
 
 
