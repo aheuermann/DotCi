@@ -91,11 +91,15 @@ public class DynamicBuildModel {
     }
 
     public void deleteBuild() throws IOException {
+        deleteSubBuilds();
+        build.delete();
+    }
+
+    public void deleteSubBuilds() throws IOException {
         List<DynamicSubBuild> runs = getExactRuns();
         for (DynamicSubBuild run : runs) {
             run.delete();
         }
-        build.delete();
     }
 
     private List<DynamicSubBuild> getExactRuns() {
@@ -131,6 +135,7 @@ public class DynamicBuildModel {
         HashMap<String, Object> environmentWithChangeSet = new HashMap<String, Object>();
         environmentWithChangeSet.putAll(build.getEnvironment(listener));
         environmentWithChangeSet.put("DOTCI_CHANGE_SET",getChangeSet());
+        environmentWithChangeSet.put("build",build);
         return environmentWithChangeSet;
     }
 

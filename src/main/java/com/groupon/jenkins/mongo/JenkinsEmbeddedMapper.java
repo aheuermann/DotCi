@@ -27,6 +27,7 @@ import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.thoughtworks.xstream.converters.reflection.SerializationMethodInvoker;
+import hudson.model.CauseAction;
 import hudson.security.Permission;
 import hudson.util.CopyOnWriteList;
 import org.bson.types.ObjectId;
@@ -64,6 +65,23 @@ class JenkinsEmbeddedMapper implements CustomMapper {
         serializationMethodInvoker = new SerializationMethodInvoker();
 
         awkwardMapper = new MapKeyValueMapper();
+    }
+    private Class getClass(final DBObject dbObj) {
+        // see if there is a className value
+        final String className = (String) dbObj.get(Mapper.CLASS_NAME_FIELDNAME);
+        if (className != null && className.equals(CauseAction.class.getName())) {
+            // try to Class.forName(className) as defined in the dbObject first,
+            // otherwise return the entityClass
+            try {
+                return Class.forName(className, true, getClassLoaderForClass(className, dbObj));
+            } catch (ClassNotFoundException e) {
+                //Ignore if notfound
+            }
+        }
+        return null;
+    }
+    protected ClassLoader getClassLoaderForClass(final String clazz, final DBObject object) {
+        return Thread.currentThread().getContextClassLoader();
     }
 
     @Override
@@ -265,7 +283,12 @@ class JenkinsEmbeddedMapper implements CustomMapper {
                         newEntity = mapper.getConverters().decode(o.getClass(), o, mf);
                     } else {
                         if (o instanceof DBObject) {
-                            newEntity = readMapOrCollectionOrEntity((DBObject) o, mf, cache, mapper);
+                            Class clazz = getClass((DBObject) o);
+                             if( clazz!= null && mapper.getConverters().hasSimpleValueConverter(clazz)){
+                                newEntity = mapper.getConverters().decode(clazz, o, mf);
+                            }else{
+                                 newEntity = readMapOrCollectionOrEntity((DBObject) o, mf, cache, mapper);
+                             }
                         } else {
                             throw new MappingException("Embedded element isn't a DBObject! How can it be that is a " + o.getClass());
                         }

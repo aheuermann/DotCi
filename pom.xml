@@ -33,7 +33,7 @@ THE SOFTWARE.
     </parent>
     <groupId>com.groupon.jenkins-ci.plugins</groupId>
     <artifactId>DotCi</artifactId>
-    <version>2.28.2-SNAPSHOT</version>
+    <version>2.36.1-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <licenses>
         <license>
@@ -48,14 +48,17 @@ THE SOFTWARE.
             <email>surya.gaddipati@gmail.com</email>
         </developer>
     </developers>
-    <description> Github integration, build management through .ci.yml, environment management though docker. </description>
+    <description>Github integration, build management through .ci.yml,
+        environment management though docker.
+    </description>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/DotCi+Plugin</url>
     <scm>
         <connection>scm:git:ssh://github.com/groupon/DotCi.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/groupon/DotCi.git</developerConnection>
+        <developerConnection>scm:git:ssh://git@github.com/groupon/DotCi.git
+        </developerConnection>
         <url>https://github.com/groupon/DotCi</url>
-      <tag>HEAD</tag>
-  </scm>
+        <tag>HEAD</tag>
+    </scm>
 
     <repositories>
         <repository>
@@ -71,11 +74,11 @@ THE SOFTWARE.
         </pluginRepository>
     </pluginRepositories>
     <properties>
-        <checkstyle.version>2.9.1</checkstyle.version>
-        <cobertura.version>2.5.2</cobertura.version>
+        <jenkins.version>1.655</jenkins.version>
+        <workflow.version>1.11</workflow.version>
         <powermock.version>1.5.5</powermock.version>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <maven-hpi-plugin.version>1.110</maven-hpi-plugin.version>
         <npm-executable>npm</npm-executable>
     </properties>
@@ -93,7 +96,25 @@ THE SOFTWARE.
         </profile>
     </profiles>
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>animal-sniffer-maven-plugin</artifactId>
+                    <configuration>
+                        <skip>true</skip>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -109,7 +130,7 @@ THE SOFTWARE.
                 <configuration>
                     <executable>${npm-executable}</executable>
                     <environmentVariables>
-                      <NODE_ENV>production</NODE_ENV>
+                        <NODE_ENV>production</NODE_ENV>
                     </environmentVariables>
                     <arguments>
                         <argument>run</argument>
@@ -121,9 +142,8 @@ THE SOFTWARE.
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
-                    <debug>true</debug>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
             </plugin>
             <plugin>
@@ -131,7 +151,9 @@ THE SOFTWARE.
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <forkMode>once</forkMode>
-                    <argLine>-Xms512m -Xmx512m -XX:MaxPermSize=512M -XX:-UseSplitVerifier</argLine>
+                    <argLine>-Xms512m -Xmx512m -XX:MaxPermSize=512M
+                        -XX:-UseSplitVerifier
+                    </argLine>
                 </configuration>
             </plugin>
             <plugin>
@@ -155,61 +177,6 @@ THE SOFTWARE.
                     <doUpdate>false</doUpdate>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>${checkstyle.version}</version>
-                <executions>
-                    <execution>
-                        <id>checkstyle-check</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>checkstyle</goal>
-                            <goal>checkstyle-aggregate</goal>
-                            <goal>check</goal>
-                        </goals>
-                        <configuration>
-                            <consoleOutput>true</consoleOutput>
-                            <logViolationsToConsole>true</logViolationsToConsole>
-                            <failOnViolation>false</failOnViolation>
-                            <maxAllowedViolations>10</maxAllowedViolations>
-                            <configLocation>${project.basedir}/resources/checkstyle.xml</configLocation>
-                            <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>cobertura-maven-plugin</artifactId>
-                <version>${cobertura.version}</version>
-                <executions>
-                    <execution>
-                        <id>cobertura-check</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>clean</goal>
-                            <goal>cobertura</goal>
-                            <goal>check</goal>
-                        </goals>
-                        <configuration>
-                            <aggregate>true</aggregate>
-                            <formats>
-                                <format>html</format>
-                                <format>xml</format>
-                            </formats>
-                            <check>
-                                <branchRate>0</branchRate>
-                                <lineRate>0</lineRate>
-                                <totalBranchRate>0</totalBranchRate>
-                                <totalLineRate>0</totalLineRate>
-                                <packageLineRate>0</packageLineRate>
-                                <packageBranchRate>0</packageBranchRate>
-                            </check>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
     <dependencies>
@@ -221,7 +188,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.68</version>
+            <version>1.77</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -318,6 +285,11 @@ THE SOFTWARE.
             <groupId>com.sonyericsson.hudson.plugins.rebuild</groupId>
             <artifactId>rebuild</artifactId>
             <version>1.25</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-basic-steps</artifactId>
+            <version>2.0</version>
         </dependency>
     </dependencies>
 </project>

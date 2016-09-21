@@ -67,9 +67,9 @@ public class SubBuildScheduler {
     }
 
     public Result runSubBuilds(Iterable<Combination> subBuildCombinations, BuildListener listener) throws InterruptedException, IOException {
-            Iterable<DynamicSubProject> subProjects = getRunSubProjects(subBuildCombinations);
+        Iterable<DynamicSubProject> subProjects = getRunSubProjects(subBuildCombinations);
+        scheduleSubBuilds(subBuildCombinations, subBuildFinishListener, listener);
 
-        scheduleSubBuilds(subBuildCombinations, listener);
         Result r = Result.SUCCESS;
 
         for (DynamicSubProject c : subProjects) {
@@ -77,7 +77,7 @@ public class SubBuildScheduler {
             Result runResult = getResult(runState);
             r = r.combine(runResult);
             listener.getLogger().println("Run " + c.getName() + " finished with : " + runResult);
-            subBuildFinishListener.runFinished(c.getBuildByNumber(dynamicBuild.getNumber()) );
+//            subBuildFinishListener.runFinished(c.getBuildByNumber(dynamicBuild.getNumber()) );
         }
         return r;
     }
@@ -86,20 +86,17 @@ public class SubBuildScheduler {
         return run != null ? run.getResult() : Result.ABORTED;
     }
 
-    protected void scheduleSubBuilds(Iterable<Combination> subBuildCombinations, TaskListener listener) throws InterruptedException, IOException {
+    protected void scheduleSubBuilds(Iterable<Combination> subBuildCombinations, SubBuildFinishListener subBuildFinishListener, TaskListener listener) throws InterruptedException, IOException {
         String nodeName = dynamicBuild.getEnvironment(listener).get("NODE_NAME", "dotci");
         Label label = Label.get(nodeName);
-
         for ( Combination subBuildCombination : subBuildCombinations) {
             DynamicSubProject c = dynamicBuild.getSubProject(subBuildCombination);
             listener.getLogger().println(Messages.MatrixBuild_Triggering(ModelHyperlinkNote.encodeTo(c)));
             List<Action> childActions = new ArrayList<Action>();
             childActions.addAll(Util.filter(dynamicBuild.getActions(), ParametersAction.class));
-
-            childActions.add(new SubBuildExecutionAction(subBuildRunner));
+            childActions.add(new SubBuildExecutionAction(subBuildRunner,subBuildFinishListener));
             childActions.add(new ParentBuildAction(dynamicBuild));
             childActions.add(new NodeAssignmentAction(label));
-
             c.scheduleBuild(childActions, dynamicBuild.getCause());
         }
     }

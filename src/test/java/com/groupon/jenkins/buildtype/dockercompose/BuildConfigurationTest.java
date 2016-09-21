@@ -48,7 +48,7 @@ public class BuildConfigurationTest {
   @Test
   public  void should_cleanup_after_test_run(){
     ShellCommands commands = getRunCommands();
-    Assert.assertEquals("trap \"docker-compose -f docker-compose.yml kill; docker-compose -f docker-compose.yml rm -v --force; exit\" PIPE QUIT INT HUP EXIT TERM",commands.get(5));
+    Assert.assertEquals("trap \"docker-compose -f docker-compose.yml down; exit\" PIPE QUIT INT HUP EXIT TERM",commands.get(5));
   }
 
   @Test
@@ -60,14 +60,14 @@ public class BuildConfigurationTest {
   @Test
   public void should_run_before_each_command_string(){
     ShellCommands commands = getRunCommands(ImmutableMap.of("before_each", "before_each cmd", "run", of("unit", "command", "integration", "integration")));
-    Assert.assertEquals("trap \"docker-compose -f docker-compose.yml kill; docker-compose -f docker-compose.yml rm -v --force; exit\" PIPE QUIT INT HUP EXIT TERM",commands.get(5));
+    Assert.assertEquals("trap \"docker-compose -f docker-compose.yml down; exit\" PIPE QUIT INT HUP EXIT TERM",commands.get(5));
     Assert.assertEquals("before_each cmd", commands.get(6));
   }
 
   @Test
   public void should_run_before_each_command_list(){
     ShellCommands commands = getRunCommands(ImmutableMap.of("before_each", ImmutableList.of("cmd 1", "cmd 2"), "run", of("unit", "command", "integration", "integration")));
-    Assert.assertEquals("trap \"docker-compose -f docker-compose.yml kill; docker-compose -f docker-compose.yml rm -v --force; exit\" PIPE QUIT INT HUP EXIT TERM",commands.get(5));
+    Assert.assertEquals("trap \"docker-compose -f docker-compose.yml down; exit\" PIPE QUIT INT HUP EXIT TERM",commands.get(5));
     Assert.assertEquals("cmd 1", commands.get(6));
     Assert.assertEquals("cmd 2", commands.get(7));
   }
@@ -101,7 +101,7 @@ public class BuildConfigurationTest {
   @Test
   public void should_accept_alternative_docker_compose_file(){
     ShellCommands commands = getRunCommands(ImmutableMap.of("docker-compose-file", "./jenkins/docker-compose.yml", "run",  of("unit", "command")));
-    Assert.assertEquals("trap \"docker-compose -f ./jenkins/docker-compose.yml kill; docker-compose -f ./jenkins/docker-compose.yml rm -v --force; exit\" PIPE QUIT INT HUP EXIT TERM",commands.get(5));
+    Assert.assertEquals("trap \"docker-compose -f ./jenkins/docker-compose.yml down; exit\" PIPE QUIT INT HUP EXIT TERM",commands.get(5));
     Assert.assertEquals("docker-compose -f ./jenkins/docker-compose.yml run -T unit command",commands.get(6));
   }
   @Test

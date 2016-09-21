@@ -36,16 +36,18 @@ import hudson.model.StringParameterValue;
 import hudson.model.UnprotectedRootAction;
 import hudson.security.ACL;
 import hudson.util.SequentialExecutionQueue;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.logging.Logger;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.export.ExportedBean;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Extension
 @ExportedBean
@@ -58,8 +60,7 @@ public class GithubWebhook implements UnprotectedRootAction {
         return "githook";
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    public void doIndex(StaplerRequest req, StaplerResponse response) throws IOException {
+    public void doIndex(final StaplerRequest req, final StaplerResponse response) throws IOException {
         String payload = req.getParameter("payload");
         if (StringUtils.isEmpty(payload) && "POST".equalsIgnoreCase(req.getMethod())) {
             payload = getRequestPayload(req);
@@ -67,56 +68,54 @@ public class GithubWebhook implements UnprotectedRootAction {
         if (StringUtils.isEmpty(payload)) {
             throw new IllegalArgumentException("Not intended to be browsed interactively (must specify payload parameter)");
         }
-        processGitHubPayload(payload);
+        processGitHubPayload(req.getHeader("X-GitHub-Event"), payload);
     }
 
-    protected String getRequestPayload(StaplerRequest req) throws IOException {
+    protected String getRequestPayload(final StaplerRequest req) throws IOException {
         return CharStreams.toString(req.getReader());
     }
 
-    public void processGitHubPayload(String payloadData) {
+    public void processGitHubPayload(final String eventType, final String payloadData) {
         SecurityContextHolder.getContext().setAuthentication(ACL.SYSTEM);
-        final Payload payload = makePayload(payloadData);
-        LOGGER.info("Received POST by " + payload.getPusher());
+        final WebhookPayload payload = makePayload(eventType, payloadData);
         LOGGER.info("Received kicking off build for " + payload.getProjectUrl());
         for (final DynamicProject job : makeDynamicProjectRepo().getJobsFor(payload.getProjectUrl())) {
 
-            if (payload.needsBuild(job.shouldBuildTags())) {
-                LOGGER.info("starting job" + job.getName());
-                queue.execute(new Runnable() {
-                    @Override
-                    public void run() {
+            if (payload.needsBuild(job)) {
+                LOGGER.info("starting job " + job.getName());
+                this.queue.execute(() -> {
+                    try {
                         job.scheduleBuild(0, payload.getCause(), new NoDuplicatesParameterAction(getParametersValues(job, payload.getBranch())));
+                    } catch (final Exception e) {
+                        LOGGER.log(Level.INFO, "Error scheduling build for " + payload.getProjectUrl(), e);
                     }
                 });
             }
         }
     }
-    private List<ParameterValue> getParametersValues(Job job, String branch) {
-        ParametersDefinitionProperty paramDefProp = (ParametersDefinitionProperty) job.getProperty(ParametersDefinitionProperty.class);
-        ArrayList<ParameterValue> defValues = new ArrayList<ParameterValue>();
 
-        for(ParameterDefinition paramDefinition : paramDefProp.getParameterDefinitions())
-        {
-            if("BRANCH".equals(paramDefinition.getName())){
-                StringParameterValue branchParam = new StringParameterValue("BRANCH", branch);
+    private List<ParameterValue> getParametersValues(final Job job, final String branch) {
+        final ParametersDefinitionProperty paramDefProp = (ParametersDefinitionProperty) job.getProperty(ParametersDefinitionProperty.class);
+        final ArrayList<ParameterValue> defValues = new ArrayList<>();
+
+        for (final ParameterDefinition paramDefinition : paramDefProp.getParameterDefinitions()) {
+            if ("BRANCH".equals(paramDefinition.getName())) {
+                final StringParameterValue branchParam = new StringParameterValue("BRANCH", branch);
                 defValues.add(branchParam);
-            }else{
-                ParameterValue defaultValue  = paramDefinition.getDefaultParameterValue();
-                if(defaultValue != null)
+            } else {
+                final ParameterValue defaultValue = paramDefinition.getDefaultParameterValue();
+                if (defaultValue != null)
                     defValues.add(defaultValue);
             }
         }
 
         return defValues;
     }
+
     protected DynamicProjectRepository makeDynamicProjectRepo() {
         return SetupConfig.get().getDynamicProjectRepository();
     }
 
-    protected Payload makePayload(String payloadData) {
-        return new Payload(payloadData);
-    }
 
     @Override
     public String getIconFileName() {
@@ -128,4 +127,7 @@ public class GithubWebhook implements UnprotectedRootAction {
         return null;
     }
 
+    public WebhookPayload makePayload(final String eventType, final String payloadData) {
+        return WebhookPayload.get(eventType, payloadData);
+    }
 }
