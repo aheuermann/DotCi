@@ -59,13 +59,14 @@ class JenkinsEmbeddedMapper implements CustomMapper {
     private final SerializationMethodInvoker serializationMethodInvoker;
 
     JenkinsEmbeddedMapper() {
-        customMappers = new HashMap<Class, CustomMapper>();
-        customMappers.put(CopyOnWriteList.class, new CopyOnWriteListMapper());
+        this.customMappers = new HashMap<>();
+        this.customMappers.put(CopyOnWriteList.class, new CopyOnWriteListMapper());
 
-        serializationMethodInvoker = new SerializationMethodInvoker();
+        this.serializationMethodInvoker = new SerializationMethodInvoker();
 
-        awkwardMapper = new MapKeyValueMapper();
+        this.awkwardMapper = new MapKeyValueMapper();
     }
+
     private Class getClass(final DBObject dbObj) {
         // see if there is a className value
         final String className = (String) dbObj.get(Mapper.CLASS_NAME_FIELDNAME);
@@ -74,43 +75,44 @@ class JenkinsEmbeddedMapper implements CustomMapper {
             // otherwise return the entityClass
             try {
                 return Class.forName(className, true, getClassLoaderForClass(className, dbObj));
-            } catch (ClassNotFoundException e) {
+            } catch (final ClassNotFoundException e) {
                 //Ignore if notfound
             }
         }
         return null;
     }
+
     protected ClassLoader getClassLoaderForClass(final String clazz, final DBObject object) {
         return Thread.currentThread().getContextClassLoader();
     }
 
     @Override
-    public void toDBObject(Object entity, MappedField mf, DBObject dbObject, Map<Object, DBObject> involvedObjects, Mapper mapper) {
-        Object fieldValue = mf.getFieldValue(entity);
-        if(fieldValue == null) return; // nothing to do
+    public void toDBObject(final Object entity, final MappedField mf, final DBObject dbObject, final Map<Object, DBObject> involvedObjects, final Mapper mapper) {
+        final Object fieldValue = mf.getFieldValue(entity);
+        if (fieldValue == null) return; // nothing to do
 
 
-        if(mapper.getConverters().hasSimpleValueConverter(mf) || mapper.getConverters().hasSimpleValueConverter(fieldValue)) {
+        if (mapper.getConverters().hasSimpleValueConverter(mf) || mapper.getConverters().hasSimpleValueConverter(fieldValue)) {
             mapper.getOptions().getValueMapper().toDBObject(entity, mf, dbObject, involvedObjects, mapper);
-        } else if(customMappers.containsKey(fieldValue.getClass())) {
-            customMappers.get(fieldValue.getClass()).toDBObject(entity, mf, dbObject, involvedObjects, mapper);
+        } else if (this.customMappers.containsKey(fieldValue.getClass())) {
+            this.customMappers.get(fieldValue.getClass()).toDBObject(entity, mf, dbObject, involvedObjects, mapper);
         } else if (isAwkwardMap(mf)) {
-            awkwardMapper.toDBObject(entity, mf, dbObject, involvedObjects, mapper);
+            this.awkwardMapper.toDBObject(entity, mf, dbObject, involvedObjects, mapper);
         } else {
             // Genericly handle an object for serialization
 
-            if(involvedObjects.containsKey(fieldValue)) { // already once serialized
+            if (involvedObjects.containsKey(fieldValue)) { // already once serialized
                 DBObject cachedStub = involvedObjects.get(fieldValue);
 
-                if(cachedStub == null) {  // visited, but not yet serialized, usually from mapper.toDBObject(...)
-                    DBObject newStub = createStub(mapper, fieldValue, mapper.getId(fieldValue));
+                if (cachedStub == null) {  // visited, but not yet serialized, usually from mapper.toDBObject(...)
+                    final DBObject newStub = createStub(mapper, fieldValue, mapper.getId(fieldValue));
                     involvedObjects.put(fieldValue, newStub);
                     cachedStub = newStub;
                 } else if (isFullySerializedObject(cachedStub, mapper)) {
                     // remove full object from the cache and replace it with an ObjectId reference
                     // so we're not storing redundant data
-                    Object id = cachedStub.get(mapper.ID_KEY);
-                    DBObject newStub = createStub(mapper, fieldValue, id);
+                    final Object id = cachedStub.get(mapper.ID_KEY);
+                    final DBObject newStub = createStub(mapper, fieldValue, id);
 
                     involvedObjects.put(fieldValue, newStub);
                     cachedStub = newStub;
@@ -125,50 +127,51 @@ class JenkinsEmbeddedMapper implements CustomMapper {
         }
     }
 
-    private boolean isFullySerializedObject(DBObject cachedStub, Mapper mapper) {
+    private boolean isFullySerializedObject(final DBObject cachedStub, final Mapper mapper) {
         return cachedStub.keySet().size() > 2
-                && cachedStub.containsField(mapper.ID_KEY)
-                && cachedStub.containsField(mapper.CLASS_NAME_FIELDNAME);
+            && cachedStub.containsField(mapper.ID_KEY)
+            && cachedStub.containsField(mapper.CLASS_NAME_FIELDNAME);
     }
 
-    private boolean isAwkwardMap(MappedField mf) {
+    private boolean isAwkwardMap(final MappedField mf) {
         return mf.isMap() && Permission.class == mf.getMapKeyClass();
     }
 
-    private DBObject createStub(Mapper mapper, Object fieldValue, Object id) {
-        if(id == null) {
+    private DBObject createStub(final Mapper mapper, final Object fieldValue, Object id) {
+        if (id == null) {
             id = new ObjectId();
         }
 
-        DBObject stub = new BasicDBObject(mapper.CLASS_NAME_FIELDNAME, fieldValue.getClass().getName());
+        final DBObject stub = new BasicDBObject(mapper.CLASS_NAME_FIELDNAME, fieldValue.getClass().getName());
         stub.put(mapper.ID_KEY, id);
 
         return stub;
     }
 
-    private Key extractKey(Mapper mapper, MappedField mf, DBObject dbObject) {
-        if(mapper == null || mf == null || dbObject == null ||  (dbObject instanceof BasicDBList)) return null;
+    private Key extractKey(final Mapper mapper, final MappedField mf, final DBObject dbObject) {
+        if (mapper == null || mf == null || dbObject == null || (dbObject instanceof BasicDBList))
+            return null;
 
-        ObjectId objectId = (ObjectId) dbObject.get(mapper.ID_KEY);
+        final ObjectId objectId = (ObjectId) dbObject.get(mapper.ID_KEY);
         //HACKY GET RID OF SOON
-        Object obj = mapper.getOptions().getObjectFactory().createInstance(mapper, mf, dbObject);
+        final Object obj = mapper.getOptions().getObjectFactory().createInstance(mapper, mf, dbObject);
 
-        if(objectId == null || obj == null) return null;
+        if (objectId == null || obj == null) return null;
 
         return new Key(obj.getClass(), objectId);
     }
 
     @Override
-    public void fromDBObject(DBObject dbObject, MappedField mf, Object entity, EntityCache cache, Mapper mapper) {
+    public void fromDBObject(final DBObject dbObject, final MappedField mf, final Object entity, final EntityCache cache, final Mapper mapper) {
 
-        Key key = extractKey(mapper, mf, (DBObject) dbObject.get(mf.getNameToStore()));
-        if(key != null && cache.getEntity(key) != null) {
-            Object object = cache.getEntity(key);
+        final Key key = extractKey(mapper, mf, (DBObject) dbObject.get(mf.getNameToStore()));
+        if (key != null && cache.getEntity(key) != null) {
+            final Object object = cache.getEntity(key);
             mf.setFieldValue(entity, object);
-        } else if(customMappers.containsKey(mf.getType())) {
-            customMappers.get(mf.getType()).fromDBObject(dbObject, mf, entity, cache, mapper);
+        } else if (this.customMappers.containsKey(mf.getType())) {
+            this.customMappers.get(mf.getType()).fromDBObject(dbObject, mf, entity, cache, mapper);
         } else if (isAwkwardMap(mf)) {
-            awkwardMapper.fromDBObject(dbObject, mf, entity, cache, mapper);
+            this.awkwardMapper.fromDBObject(dbObject, mf, entity, cache, mapper);
         } else {
             // the first two conditions (isMap and isMultipleValues) are part of the hack to fix handling primitives
             if (mf.isMap()) {
@@ -179,7 +182,7 @@ class JenkinsEmbeddedMapper implements CustomMapper {
                 mapper.getOptions().getEmbeddedMapper().fromDBObject(dbObject, mf, entity, cache, mapper);
             }
 
-            serializationMethodInvoker.callReadResolve(mf.getFieldValue(entity));
+            this.serializationMethodInvoker.callReadResolve(mf.getFieldValue(entity));
         }
 
 
@@ -191,7 +194,7 @@ class JenkinsEmbeddedMapper implements CustomMapper {
         final Map map = mapper.getOptions().getObjectFactory().createMap(mf);
 
         final DBObject dbObj = (DBObject) mf.getDbObjectValue(dbObject);
-        new IterHelper<Object, Object>().loopMap(dbObj, new IterHelper.MapIterCallback<Object, Object>() {
+        new IterHelper<>().loopMap(dbObj, new IterHelper.MapIterCallback<Object, Object>() {
             @Override
             public void eval(final Object key, final Object val) {
                 Object newEntity = null;
@@ -199,9 +202,9 @@ class JenkinsEmbeddedMapper implements CustomMapper {
                 //run converters
                 if (val != null) {
                     if (mapper.getConverters().hasSimpleValueConverter(mf) || mapper.getConverters()
-                            .hasSimpleValueConverter(mf.getSubClass())) {
+                        .hasSimpleValueConverter(mf.getSubClass())) {
                         newEntity = mapper.getConverters().decode(mf.getSubClass(), val, mf);
-                    } else if(mapper.getConverters().hasSimpleValueConverter(val.getClass())) { // added this condition to handle incorrectly mapped primitives.
+                    } else if (mapper.getConverters().hasSimpleValueConverter(val.getClass())) { // added this condition to handle incorrectly mapped primitives.
                         newEntity = mapper.getConverters().decode(val.getClass(), val, mf);
                     } else {
                         if (val instanceof DBObject) {
@@ -226,11 +229,11 @@ class JenkinsEmbeddedMapper implements CustomMapper {
 
     // Taken from Morphia's Embedded Mapper
     @Deprecated
-    private Object readMapOrCollectionOrEntity(DBObject dbObj, MappedField mf, EntityCache cache, Mapper mapper) {
+    private Object readMapOrCollectionOrEntity(final DBObject dbObj, final MappedField mf, final EntityCache cache, final Mapper mapper) {
         try {
 
             // to get around the protected access
-            Method method = Mapper.class.getDeclaredMethod("fromDb", DBObject.class, Object.class, EntityCache.class);
+            final Method method = Mapper.class.getDeclaredMethod("fromDb", DBObject.class, Object.class, EntityCache.class);
             method.setAccessible(true);
             if (Map.class.isAssignableFrom(mf.getSubClass()) || Iterable.class.isAssignableFrom(mf.getSubClass())) {
                 final MapOrCollectionMF mocMF = new MapOrCollectionMF((ParameterizedType) mf.getSubType());
@@ -242,11 +245,11 @@ class JenkinsEmbeddedMapper implements CustomMapper {
                 final Object newEntity = mapper.getOptions().getObjectFactory().createInstance(mapper, mf, dbObj);
                 return method.invoke(mapper, dbObj, newEntity, cache);
             }
-        } catch (NoSuchMethodException e) {
+        } catch (final NoSuchMethodException e) {
             throw new RuntimeException("Mapper class does not have fromDb method", e);
-        } catch (InvocationTargetException e) {
+        } catch (final InvocationTargetException e) {
             throw new RuntimeException("Unable to call fromDb on Mapper with arguments", e);
-        } catch (IllegalAccessException e) {
+        } catch (final IllegalAccessException e) {
             throw new RuntimeException("Security model prevents calling fromDb on Mapper", e);
         }
     }
@@ -257,7 +260,7 @@ class JenkinsEmbeddedMapper implements CustomMapper {
                                 final Mapper mapper) {
         // multiple documents in a List
         final Collection values = mf.isSet() ? mapper.getOptions().getObjectFactory().createSet(mf)
-                : mapper.getOptions().getObjectFactory().createList(mf);
+            : mapper.getOptions().getObjectFactory().createList(mf);
 
         final Object dbVal = mf.getDbObjectValue(dbObject);
         if (dbVal != null) {
@@ -277,18 +280,18 @@ class JenkinsEmbeddedMapper implements CustomMapper {
                 if (o != null) {
                     //run converters
                     if (mapper.getConverters().hasSimpleValueConverter(mf) || mapper.getConverters()
-                            .hasSimpleValueConverter(mf.getSubClass())) {
+                        .hasSimpleValueConverter(mf.getSubClass())) {
                         newEntity = mapper.getConverters().decode(mf.getSubClass(), o, mf);
-                    } else if(mapper.getConverters().hasSimpleValueConverter(o.getClass())) {// added this condition to handle incorrectly mapped primitives.
+                    } else if (mapper.getConverters().hasSimpleValueConverter(o.getClass())) {// added this condition to handle incorrectly mapped primitives.
                         newEntity = mapper.getConverters().decode(o.getClass(), o, mf);
                     } else {
                         if (o instanceof DBObject) {
-                            Class clazz = getClass((DBObject) o);
-                             if( clazz!= null && mapper.getConverters().hasSimpleValueConverter(clazz)){
+                            final Class clazz = getClass((DBObject) o);
+                            if (clazz != null && mapper.getConverters().hasSimpleValueConverter(clazz)) {
                                 newEntity = mapper.getConverters().decode(clazz, o, mf);
-                            }else{
-                                 newEntity = readMapOrCollectionOrEntity((DBObject) o, mf, cache, mapper);
-                             }
+                            } else {
+                                newEntity = readMapOrCollectionOrEntity((DBObject) o, mf, cache, mapper);
+                            }
                         } else {
                             throw new MappingException("Embedded element isn't a DBObject! How can it be that is a " + o.getClass());
                         }
@@ -315,35 +318,35 @@ class MapOrCollectionMF extends MappedField {
     private ParameterizedType pType;
     private Object value;
 
-    @Override
-    protected Object clone() throws CloneNotSupportedException {
-        final MapOrCollectionMF other = new MapOrCollectionMF();
-        other.pType = pType;
-        other.isSet = isSet;
-        other.isMap = isMap;
-        other.mapKeyType = mapKeyType;
-        other.subType = subType;
-        other.isMongoType = isMongoType;
-        return other;
-    }
-
     MapOrCollectionMF() {
-        isSingleValue = false;
+        this.isSingleValue = false;
     }
 
     MapOrCollectionMF(final ParameterizedType t) {
         this();
-        pType = t;
+        this.pType = t;
         final Class rawClass = (Class) t.getRawType();
-        isSet = ReflectionUtils.implementsInterface(rawClass, Set.class);
-        isMap = ReflectionUtils.implementsInterface(rawClass, Map.class);
-        mapKeyType = getMapKeyClass();
-        subType = getSubType();
-        isMongoType = ReflectionUtils.isPropertyType(getSubClass());
+        this.isSet = ReflectionUtils.implementsInterface(rawClass, Set.class);
+        this.isMap = ReflectionUtils.implementsInterface(rawClass, Map.class);
+        this.mapKeyType = getMapKeyClass();
+        this.subType = getSubType();
+        this.isMongoType = ReflectionUtils.isPropertyType(getSubClass());
+    }
+
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        final MapOrCollectionMF other = new MapOrCollectionMF();
+        other.pType = this.pType;
+        other.isSet = this.isSet;
+        other.isMap = this.isMap;
+        other.mapKeyType = this.mapKeyType;
+        other.subType = this.subType;
+        other.isMongoType = this.isMongoType;
+        return other;
     }
 
     public Object getValue() {
-        return value;
+        return this.value;
     }
 
     @Override
@@ -368,17 +371,17 @@ class MapOrCollectionMF extends MappedField {
 
     @Override
     public Class getType() {
-        return isMap ? Map.class : List.class;
+        return this.isMap ? Map.class : List.class;
     }
 
     @Override
     public Class getMapKeyClass() {
-        return (Class) (isMap() ? pType.getActualTypeArguments()[0] : null);
+        return (Class) (isMap() ? this.pType.getActualTypeArguments()[0] : null);
     }
 
     @Override
     public Type getSubType() {
-        return pType.getActualTypeArguments()[isMap() ? 1 : 0];
+        return this.pType.getActualTypeArguments()[isMap() ? 1 : 0];
     }
 
     @Override
@@ -393,11 +396,11 @@ class MapOrCollectionMF extends MappedField {
 
     @Override
     public Object getFieldValue(final Object classInst) {
-        return value;
+        return this.value;
     }
 
     @Override
     public void setFieldValue(final Object classInst, final Object val) {
-        value = val;
+        this.value = val;
     }
 }

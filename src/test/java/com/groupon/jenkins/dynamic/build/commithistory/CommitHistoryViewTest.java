@@ -25,16 +25,17 @@
 package com.groupon.jenkins.dynamic.build.commithistory;
 
 import com.groupon.jenkins.dynamic.build.DynamicBuild;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHCommitStatus;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.PagedIterable;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -43,25 +44,25 @@ public class CommitHistoryViewTest {
 
     @Test
     public void should_group_commit_statueses_by_context() throws IOException {
-        CommitHistoryView commitHistoryView = new CommitHistoryView();;
-        DynamicBuild build = mock(DynamicBuild.class);
-        GHRepository githubRepo = mock(GHRepository.class);
+        final CommitHistoryView commitHistoryView = new CommitHistoryView();
+        final DynamicBuild build = mock(DynamicBuild.class);
+        final GHRepository githubRepo = mock(GHRepository.class);
         when(build.getGithubRepository()).thenReturn(githubRepo);
 
-        PagedIterable<GHCommitStatus> commitStatusesList = mock(PagedIterable.class);
-        GHCommitStatus commitStatus1= mock(GHCommitStatus.class);
-        GHCommitStatus commitStatus2 = mock(GHCommitStatus.class);
+        final PagedIterable<GHCommitStatus> commitStatusesList = mock(PagedIterable.class);
+        final GHCommitStatus commitStatus1 = mock(GHCommitStatus.class);
+        final GHCommitStatus commitStatus2 = mock(GHCommitStatus.class);
 
         when(commitStatus1.getContext()).thenReturn("Default");
         when(commitStatus2.getContext()).thenReturn("DotCi");
 
         when(commitStatusesList.asList()).thenReturn(Arrays.asList(commitStatus1, commitStatus2));
-        GHCommit currentCommit = mock(GHCommit.class);
+        final GHCommit currentCommit = mock(GHCommit.class);
         when(githubRepo.getCommit(null)).thenReturn(currentCommit);
         when(currentCommit.listStatuses()).thenReturn(commitStatusesList);
         when(githubRepo.getLastCommitStatus(null)).thenReturn(commitStatus1);
         commitHistoryView.onLoad(build);
-        Map<String, List<GHCommitStatus>> commitStatuses = commitHistoryView.getCommitStatuses();
+        final Map<String, List<GHCommitStatus>> commitStatuses = commitHistoryView.getCommitStatuses();
 
         Assert.assertEquals(commitStatuses.get("Default").get(0), commitStatus1);
         Assert.assertEquals(commitStatuses.get("DotCi").get(0), commitStatus2);

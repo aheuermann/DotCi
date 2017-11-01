@@ -33,7 +33,7 @@ THE SOFTWARE.
     </parent>
     <groupId>com.groupon.jenkins-ci.plugins</groupId>
     <artifactId>DotCi</artifactId>
-    <version>2.36.1-SNAPSHOT</version>
+    <version>2.39.10-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <licenses>
         <license>
@@ -74,7 +74,7 @@ THE SOFTWARE.
         </pluginRepository>
     </pluginRepositories>
     <properties>
-        <jenkins.version>1.655</jenkins.version>
+        <jenkins.version>2.26</jenkins.version>
         <workflow.version>1.11</workflow.version>
         <powermock.version>1.5.5</powermock.version>
         <maven.compiler.source>1.7</maven.compiler.source>
@@ -183,12 +183,12 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>matrix-project</artifactId>
-            <version>1.2</version>
+            <version>1.6</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.77</version>
+            <version>1.84</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -242,10 +242,22 @@ THE SOFTWARE.
             <version>0.1.50</version>
         </dependency>
         <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-all</artifactId>
-            <version>1.9.5</version>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-all</artifactId>
+            <version>1.3</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>1.10.8</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.hamcrest</groupId>
+                    <artifactId>hamcrest-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.powermock</groupId>
@@ -289,7 +301,7 @@ THE SOFTWARE.
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-basic-steps</artifactId>
-            <version>2.0</version>
+            <version>2.2</version>
         </dependency>
     </dependencies>
 </project>

@@ -25,9 +25,11 @@ package com.groupon.jenkins.dynamic.build.execution;
 
 import hudson.model.BuildListener;
 import hudson.model.Result;
+import hudson.model.Run;
 import hudson.tasks.BuildStep;
+
 import java.io.IOException;
-import java.util.*;
+import java.util.Map;
 
 public interface BuildExecutionContext {
 
@@ -35,6 +37,7 @@ public interface BuildExecutionContext {
 
     void setResult(Result r);
 
-    Map<String,Object> getBuildEnvironmentVariables();
+    Map<String, Object> getBuildEnvironmentVariables();
 
+    Run getRun();
 }

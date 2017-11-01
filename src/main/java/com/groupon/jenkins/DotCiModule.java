@@ -28,6 +28,8 @@ import com.google.inject.Provides;
 import com.groupon.jenkins.mongo.JenkinsMapper;
 import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.ReadPreference;
 import org.mongodb.morphia.Datastore;
 import org.mongodb.morphia.Morphia;
 import org.mongodb.morphia.mapping.Mapper;
@@ -40,25 +42,28 @@ public class DotCiModule extends AbstractModule {
     protected void configure() {
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     Mongo providesMongo() {
         Mongo mongo = null;
 
         try {
-            mongo = new MongoClient(SetupConfig.get().getDbHost(), SetupConfig.get().getDbPort());
-        } catch (UnknownHostException e) {
+            final MongoClientOptions mongoClientOptions = MongoClientOptions.builder().autoConnectRetry(true).readPreference(ReadPreference.primaryPreferred()).build();
+            mongo = new MongoClient(SetupConfig.get().getMongoServerAddresses(), mongoClientOptions);
+        } catch (final UnknownHostException e) {
             addError(e);
         }
 
         return mongo;
     }
 
-    @Provides @Singleton
-    Datastore provideDatastore(Mongo mongo) {
-        String databaseName = SetupConfig.get().getDbName();
+    @Provides
+    @Singleton
+    Datastore provideDatastore(final Mongo mongo) {
+        final String databaseName = SetupConfig.get().getDbName();
 
-        Mapper mapper = new JenkinsMapper();
-        Morphia morphia = new Morphia(mapper);
+        final Mapper mapper = new JenkinsMapper();
+        final Morphia morphia = new Morphia(mapper);
         return morphia.createDatastore(mongo, databaseName);
 
     }

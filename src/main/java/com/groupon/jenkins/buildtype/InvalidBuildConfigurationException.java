@@ -23,23 +23,28 @@ THE SOFTWARE.
  */
 package com.groupon.jenkins.buildtype;
 
+import com.google.common.base.Joiner;
+
 import java.util.Arrays;
 
-@SuppressWarnings("serial")
 public class InvalidBuildConfigurationException extends RuntimeException {
 
     private final Iterable<String> validationErrors;
 
-    public InvalidBuildConfigurationException(Iterable<String> validationErrors) {
+    public InvalidBuildConfigurationException(final Iterable<String> validationErrors) {
         this.validationErrors = validationErrors;
     }
 
-    public InvalidBuildConfigurationException(String validationError) {
+    public InvalidBuildConfigurationException(final String validationError) {
         this(Arrays.asList(validationError));
     }
 
     public Iterable<String> getValidationErrors() {
-        return validationErrors;
+        return this.validationErrors;
     }
 
+    @Override
+    public String getMessage() {
+        return Joiner.on(",").join(this.validationErrors);
+    }
 }

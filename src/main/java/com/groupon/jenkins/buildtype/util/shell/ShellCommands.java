@@ -25,6 +25,10 @@ package com.groupon.jenkins.buildtype.util.shell;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.escape.Escaper;
+import com.google.common.escape.Escapers;
+import org.apache.commons.lang.StringUtils;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -32,31 +36,51 @@ import java.util.List;
 import java.util.Stack;
 import java.util.regex.Pattern;
 
-import com.google.common.escape.Escaper;
-import com.google.common.escape.Escapers;
-import org.apache.commons.lang.StringUtils;
-
 public class ShellCommands {
-    private final List<String> commands;
     public static final ShellCommands NOOP = new ShellCommands("NOOP", "");
+    public static final Escaper SHELL_ESCAPE;
 
-    public ShellCommands(String... commands) {
+    static {
+        final Escapers.Builder builder = Escapers.builder();
+        builder.addEscape('\'', "'\"'\"'");
+        SHELL_ESCAPE = builder.build();
+    }
+
+    private final List<String> commands;
+    private final boolean echoCommands;
+
+    public ShellCommands(final boolean echoCommands, final String... commands) {
+        this.echoCommands = echoCommands;
         this.commands = Lists.newArrayList(commands);
     }
 
-    public ShellCommands(List<String> commands) {
-        this.commands = commands;
+    public ShellCommands(final String... commands) {
+        this(true, commands);
     }
 
-    public String get(int index) {
-        return commands.get(index);
+    public ShellCommands(final List<String> commands) {
+        this(true, commands.toArray(new String[]{}));
     }
 
-    public void add(String command) {
-        commands.add(command);
+    public static ShellCommands combine(final List<ShellCommands> subPhases) {
+        final ShellCommands combinedShellCommands = new ShellCommands(new LinkedList<>());
+        for (final ShellCommands shellCommands : subPhases) {
+            if (shellCommands != null && ShellCommands.NOOP != shellCommands) {
+                combinedShellCommands.add(shellCommands);
+            }
+        }
+        return combinedShellCommands;
     }
 
-    protected String concat(String... lines) {
+    public String get(final int index) {
+        return this.commands.get(index);
+    }
+
+    public void add(final String command) {
+        this.commands.add(command);
+    }
+
+    protected String concat(final String... lines) {
         return Joiner.on("\n").join(lines);
     }
 
@@ -65,31 +89,27 @@ public class ShellCommands {
     }
 
     private String[] formatCommandsForConsole() {
-        List<String> formattedCommands = new ArrayList<String>(2 * commands.size());
-        for (String command : commands) {
-            formattedCommands.add(echoCommand(command));
+        final List<String> formattedCommands = new ArrayList<>(2 * this.commands.size());
+        for (final String command : this.commands) {
+            if (this.echoCommands) {
+                formattedCommands.add(echoCommand(command));
+            }
             formattedCommands.add(command);
         }
         return formattedCommands.toArray(new String[formattedCommands.size()]);
     }
 
-    private String echoCommand(String command) {
+    private String echoCommand(final String command) {
         return "echo $ ' " + escapeForShell(command) + "'";
     }
 
-    public static final Escaper SHELL_ESCAPE;
-    static {
-        final Escapers.Builder builder = Escapers.builder();
-        builder.addEscape('\'', "'\"'\"'");
-        SHELL_ESCAPE = builder.build();
-    }
-
-    private String escapeForShell(String command) {
+    private String escapeForShell(final String command) {
         return SHELL_ESCAPE.escape((String) command);
     }
 
     public Pattern regexp(String re) {
-        int n = re.length() - 1, flags = Pattern.UNIX_LINES | Pattern.MULTILINE;
+        final int n = re.length() - 1;
+        final int flags = Pattern.UNIX_LINES | Pattern.MULTILINE;
         if (re.charAt(0) != '^') {
             re = ".*" + re;
         }
@@ -99,42 +119,32 @@ public class ShellCommands {
         return Pattern.compile(re, flags);
     }
 
-    public ShellCommands addAll(Stack<String> commands) {
-        while (!commands.empty()){
-           this.commands.add(commands.pop()) ;
+    public ShellCommands addAll(final Stack<String> commands) {
+        while (!commands.empty()) {
+            this.commands.add(commands.pop());
         }
         return this;
     }
 
-    public ShellCommands addAll(List<String> commands) {
+    public ShellCommands addAll(final List<String> commands) {
         this.commands.addAll(commands);
         return this;
     }
 
-    public ShellCommands add(ShellCommands otherCommands) {
-        commands.addAll(otherCommands.getCommands());
+    public ShellCommands add(final ShellCommands otherCommands) {
+        this.commands.addAll(otherCommands.getCommands());
         return this;
     }
 
     public Collection<? extends String> getCommands() {
-        return commands;
+        return this.commands;
     }
 
     public String toSingleShellCommand() {
-        return Joiner.on(" && ").join(commands);
-    }
-
-    public static ShellCommands combine(List<ShellCommands> subPhases) {
-        ShellCommands combinedShellCommands = new ShellCommands(new LinkedList<String>());
-        for (ShellCommands shellCommands : subPhases) {
-            if (shellCommands != null && ShellCommands.NOOP != shellCommands) {
-                combinedShellCommands.add(shellCommands);
-            }
-        }
-        return combinedShellCommands;
+        return Joiner.on(" && ").join(this.commands);
     }
 
     public int size() {
-        return commands.size();
+        return this.commands.size();
     }
 }
