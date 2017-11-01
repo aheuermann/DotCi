@@ -137,7 +137,7 @@ public class BuildConfiguration {
     }
 
     private ShellCommands getCleanupCommands(final String dockerComposeContainerName, final String projectName) {
-        final ShellCommands cleanupCommands = getCopyWorkDirIntoWorkspaceCommands(dockerComposeContainerName, projectName);
+        final ShellCommands cleanupCommands = new ShellCommands(false);
         cleanupCommands.add(String.format("docker-compose -f %s down", getDockerComposeFileName()));
         return cleanupCommands;
     }

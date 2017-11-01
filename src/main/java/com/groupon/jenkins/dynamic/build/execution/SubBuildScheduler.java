@@ -81,7 +81,7 @@ public class SubBuildScheduler {
         return run != null ? run.getResult() : Result.ABORTED;
     }
 
-    protected void scheduleSubBuilds(final Iterable<Combination> subBuildCombinations, final SubBuildFinishListener subBuildFinishListener, final TaskListener listener) {
+    protected void scheduleSubBuilds(final Iterable<Combination> subBuildCombinations, final SubBuildFinishListener subBuildFinishListener, final TaskListener listener) throws IOException, InterruptedException {
         String nodeName = dynamicBuild.getEnvironment(listener).get("NODE_NAME", "dotci");
         Label label = Label.get(nodeName);
         for (final Combination subBuildCombination : subBuildCombinations) {
@@ -92,7 +92,6 @@ public class SubBuildScheduler {
             childActions.add(new SubBuildExecutionAction(this.subBuildRunner, subBuildFinishListener));
             childActions.add(new ParentBuildAction(this.dynamicBuild));
             childActions.add(new NodeAssignmentAction(label));
-
             c.scheduleBuild(childActions, this.dynamicBuild.getCause());
         }
     }

@@ -37,6 +37,7 @@ import hudson.model.ItemGroup;
 import hudson.model.JobProperty;
 import hudson.model.Label;
 import hudson.model.ParametersAction;
+import hudson.model.Queue;
 import hudson.model.Queue.NonBlockingTask;
 import hudson.model.Queue.QueueAction;
 import hudson.model.SCMedItem;
@@ -61,7 +62,7 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.logging.Logger;
 
-public class DynamicSubProject extends DbBackedProject<DynamicSubProject, DynamicSubBuild> implements SCMedItem, NonBlockingTask {
+public class DynamicSubProject extends DbBackedProject<DynamicSubProject, DynamicSubBuild> implements SCMedItem, NonBlockingTask, Queue.FlyweightTask {
     private static final Logger LOGGER = Logger.getLogger(DbBackedProject.class.getName());
     private ObjectId parentId;
     private Combination combination;
